@@ -16,23 +16,23 @@ func TestBWArr_SizeOfEmpty(t *testing.T) {
 		bwarr        *BWArr[int64]
 		expectedSize int
 	}{
-		// Count words (8 bytes):
-		// whiteSegments 3, // total 1, cmp 1 --> // 3 + 1 + 1 = 5;
-		// 5 * 8 = 40 bytes;
+		// Count words (8 bytes): maxSegmentRank (1 byte)
+		// whiteSegments 3, // total 1, cmp 1 --> // 3 + 1 + 1 + 1 = 6;
+		// 6 * 8 = 48 bytes;
 		{
 			name:         "Empty",
 			bwarr:        &BWArr[int64]{},
-			expectedSize: 40,
+			expectedSize: 48,
 		},
 		{
 			name:         "New(0)",
-			bwarr:        New[int64](int64Cmp, 0),
-			expectedSize: 40,
+			bwarr:        New[int64](int64Cmp, 0, defaultMaxSegmentRank),
+			expectedSize: 48,
 		},
 		{
 			name:         "New(testAllocsSize)",
-			bwarr:        New[int64](int64Cmp, testAllocsSize),
-			expectedSize: 463,
+			bwarr:        New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank),
+			expectedSize: 471,
 		},
 	}
 
@@ -51,7 +51,7 @@ func TestBWArr_Allocs_New(t *testing.T) {
 	const expectedAllocs = 10
 
 	allocs := testing.AllocsPerRun(100, func() {
-		bwarr := New[int64](int64Cmp, testAllocsSize)
+		bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 		_ = bwarr
 	})
 
@@ -80,7 +80,7 @@ func TestBWArr_Allocs_Insert(t *testing.T) {
 	const N = 100
 	bwarrs := make([]*BWArr[int64], N+1)
 	for i := range bwarrs {
-		bwarrs[i] = New[int64](int64Cmp, testAllocsSize)
+		bwarrs[i] = New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 	}
 
 	idx := 0
@@ -98,7 +98,7 @@ func TestBWArr_Allocs_ReplaceOrInsert(t *testing.T) {
 	const N = 100
 	bwarrs := make([]*BWArr[int64], N+1)
 	for i := range bwarrs {
-		bwarrs[i] = New[int64](int64Cmp, testAllocsSize)
+		bwarrs[i] = New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 	}
 
 	idx := 0
@@ -114,7 +114,7 @@ func TestBWArr_Allocs_ReplaceOrInsert(t *testing.T) {
 
 func TestBWArr_Allocs_Has(t *testing.T) {
 	const N = 100
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	// Pre-populate with test data
 	for i := range testAllocsSize {
@@ -132,7 +132,7 @@ func TestBWArr_Allocs_Has(t *testing.T) {
 
 func TestBWArr_Allocs_Get(t *testing.T) {
 	const N = 100
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	// Pre-populate with test data
 	for i := range testAllocsSize {
@@ -152,7 +152,7 @@ func TestBWArr_Allocs_Delete(t *testing.T) {
 	const N = 100
 	bwarrs := make([]*BWArr[int64], N+1)
 	for i := range bwarrs {
-		bwarrs[i] = New[int64](int64Cmp, testAllocsSize)
+		bwarrs[i] = New[int64](int64Cmp, testAllocsSize, 10)
 		// Pre-populate with test data
 		for j := range testAllocsSize {
 			bwarrs[i].Insert(int64(j))
@@ -172,7 +172,7 @@ func TestBWArr_Allocs_Delete(t *testing.T) {
 
 func TestBWArr_Allocs_DeleteMin(t *testing.T) {
 	const N = 100
-	bwarr := New(int64Cmp, N)
+	bwarr := New(int64Cmp, N, defaultMaxSegmentRank)
 	for j := range N {
 		bwarr.Insert(int64(j))
 	}
@@ -188,7 +188,7 @@ func TestBWArr_Allocs_DeleteMin(t *testing.T) {
 
 func TestBWArr_Allocs_DeleteMax(t *testing.T) {
 	const N = 100
-	bwarr := New(int64Cmp, N)
+	bwarr := New(int64Cmp, N, defaultMaxSegmentRank)
 	for j := range N {
 		bwarr.Insert(int64(j))
 	}
@@ -204,7 +204,7 @@ func TestBWArr_Allocs_DeleteMax(t *testing.T) {
 
 func TestBWArr_Allocs_Min(t *testing.T) {
 	const N = 100
-	bwarr := New[int64](int64Cmp, N)
+	bwarr := New[int64](int64Cmp, N, defaultMaxSegmentRank)
 
 	// Pre-populate with test data
 	for i := range N {
@@ -220,7 +220,7 @@ func TestBWArr_Allocs_Min(t *testing.T) {
 
 func TestBWArr_Allocs_Max(t *testing.T) {
 	const N = 100
-	bwarr := New[int64](int64Cmp, N)
+	bwarr := New[int64](int64Cmp, N, defaultMaxSegmentRank)
 
 	// Pre-populate with test data
 	for i := range N {
@@ -235,7 +235,7 @@ func TestBWArr_Allocs_Max(t *testing.T) {
 }
 
 func TestBWArr_Allocs_Clear(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	// Pre-populate with test data
 	for i := range testAllocsSize {
@@ -251,7 +251,7 @@ func TestBWArr_Allocs_Clear(t *testing.T) {
 }
 
 func TestBWArr_Allocs_ShouldBeEmptyAfterClear(t *testing.T) {
-	bwarr := New[int64](int64Cmp, 0)
+	bwarr := New[int64](int64Cmp, 0, defaultMaxSegmentRank)
 	szBefore := calculateBWArrSize(bwarr)
 
 	const N = 100
@@ -266,7 +266,7 @@ func TestBWArr_Allocs_ShouldBeEmptyAfterClear(t *testing.T) {
 }
 
 func TestBWArr_Allocs_Clone(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -283,7 +283,7 @@ func TestBWArr_Allocs_Clone(t *testing.T) {
 
 func TestBWArr_Allocs_Len(t *testing.T) {
 	const N = 100
-	bwarr := New[int64](int64Cmp, N)
+	bwarr := New[int64](int64Cmp, N, defaultMaxSegmentRank)
 
 	for i := range N {
 		bwarr.Insert(int64(i))
@@ -297,7 +297,7 @@ func TestBWArr_Allocs_Len(t *testing.T) {
 }
 
 func TestBWArr_Allocs_Ascend(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -316,7 +316,7 @@ func TestBWArr_Allocs_Ascend(t *testing.T) {
 }
 
 func TestBWArr_Allocs_AscendGreaterOrEqual(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -335,7 +335,7 @@ func TestBWArr_Allocs_AscendGreaterOrEqual(t *testing.T) {
 }
 
 func TestBWArr_Allocs_AscendLessThan(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -354,7 +354,7 @@ func TestBWArr_Allocs_AscendLessThan(t *testing.T) {
 }
 
 func TestBWArr_Allocs_AscendRange(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -373,7 +373,7 @@ func TestBWArr_Allocs_AscendRange(t *testing.T) {
 }
 
 func TestBWArr_Allocs_Descend(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -392,7 +392,7 @@ func TestBWArr_Allocs_Descend(t *testing.T) {
 }
 
 func TestBWArr_Allocs_DescendGreaterOrEqual(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -411,7 +411,7 @@ func TestBWArr_Allocs_DescendGreaterOrEqual(t *testing.T) {
 }
 
 func TestBWArr_Allocs_DescendLessThan(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -430,7 +430,7 @@ func TestBWArr_Allocs_DescendLessThan(t *testing.T) {
 }
 
 func TestBWArr_Allocs_DescendRange(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -449,7 +449,7 @@ func TestBWArr_Allocs_DescendRange(t *testing.T) {
 }
 
 func TestBWArr_Allocs_UnorderedWalk(t *testing.T) {
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
@@ -469,7 +469,7 @@ func TestBWArr_Allocs_UnorderedWalk(t *testing.T) {
 
 func TestBWArr_Allocs_Compact(t *testing.T) {
 	const testAllocsSize = 16
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	// Pre-populate with test data
 	for i := range testAllocsSize {
@@ -485,7 +485,7 @@ func TestBWArr_Allocs_Compact(t *testing.T) {
 
 func TestBWArr_Allocs_ShouldBeLessAfterCompact(t *testing.T) {
 	const testAllocsSize = 1024
-	bwarr := New[int64](int64Cmp, testAllocsSize)
+	bwarr := New[int64](int64Cmp, testAllocsSize, defaultMaxSegmentRank)
 
 	for i := range testAllocsSize {
 		bwarr.Insert(int64(i))
