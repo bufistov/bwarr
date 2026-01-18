@@ -1,7 +1,6 @@
 package bwarr
 
 import (
-	"math"
 	"math/bits"
 )
 
@@ -256,13 +255,14 @@ func (s *segment[T]) deepCopy() segment[T] {
 }
 
 func calculateWhiteSegmentsQuantity(capacity int) int {
+	const bitsIn8Bytes = 64
 	if capacity < 0 {
 		panic("negative capacity")
 	}
 	if capacity == 0 {
 		return 0
 	}
-	return int(math.Log2(float64(capacity)) + 1) // Maybe: rewrite without using math (bit operations)?
+	return bitsIn8Bytes - bits.LeadingZeros64(uint64(capacity))
 }
 
 func log2(x uint64) int {
