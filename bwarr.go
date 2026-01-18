@@ -4,16 +4,23 @@
 // See data structure details at: https://arxiv.org/abs/2004.09051
 package bwarr
 
-import "slices"
+import (
+	"math/bits"
+	"slices"
+)
+
+const defaultMaxSegmentRank = 10
 
 // BWArr is a Black-White Array, a fast, ordered data structure with O(log N) memory allocations
 // and O(log N) amortized complexity for insert, delete, and search operations. Can store equal
 // elements and maintains stable ordering.
 // See data structure details at: https://arxiv.org/abs/2004.09051
 type BWArr[T any] struct {
-	whiteSegments []segment[T]
-	total         uint64 // Total number of elements in the array, including deleted ones.
-	cmp           CmpFunc[T]
+	whiteSegments  []segment[T]
+	total          uint64 // Total number of elements in the array, including deleted ones.
+	cmp            CmpFunc[T]
+	maxSegmentRank int8 // Always keep segments with rank <= maxSegmentRank
+	// If maxSegmentRank is 10 the structure will never shrink below 2047 bytes.
 }
 
 // CmpFunc is a comparison function that defines the ordering of elements.
@@ -32,8 +39,8 @@ type IteratorFunc[T any] func(item T) bool
 // capacity hint. The capacity parameter provides an estimate of the expected
 // number of elements to optimize initial memory allocation. Use 0 if the
 // capacity is unknown.
-func New[T any](cmp CmpFunc[T], capacity int) *BWArr[T] {
-	bwa := &BWArr[T]{cmp: cmp, total: 0}
+func New[T any](cmp CmpFunc[T], capacity int, maxSegmentRank int8) *BWArr[T] {
+	bwa := &BWArr[T]{cmp: cmp, total: 0, maxSegmentRank: maxSegmentRank}
 
 	wSegNum := calculateWhiteSegmentsQuantity(capacity)
 	if wSegNum > 0 {
@@ -50,7 +57,7 @@ func NewFromSlice[T any](cmp CmpFunc[T], slice []T) *BWArr[T] {
 	l := len(slice)
 	total := uint64(l)
 	if l == 0 {
-		return New[T](cmp, 0)
+		return New[T](cmp, 0, defaultMaxSegmentRank)
 	}
 
 	copyFrom := 0
@@ -414,6 +421,9 @@ func (bwa *BWArr[T]) del(segNum, index int) (deleted T) {
 	if uint64(halfSegmentCapacity)&bwa.total == 0 {
 		bwa.ensureSeg(segNum - 1)
 		demoteSegment(*seg, &bwa.whiteSegments[segNum-1])
+		if bwa.maxRank() == segNum && segNum > int(bwa.maxSegmentRank) {
+			bwa.whiteSegments[segNum] = segment[T]{} //nolint:exhaustruct
+		}
 	} else {
 		demoteSegment1(*seg)
 		mergeSegments1(&bwa.whiteSegments[segNum-1], seg, bwa.cmp, halfSegmentCapacity)
@@ -492,4 +502,8 @@ func (bwa *BWArr[T]) ensureSeg(rank int) {
 	if len(bwa.whiteSegments[rank].elements) == 0 {
 		bwa.whiteSegments[rank] = makeSegment[T](rank)
 	}
+}
+
+func (bwa *BWArr[T]) maxRank() int {
+	return bits.Len64(bwa.total) - 1
 }

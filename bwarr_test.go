@@ -86,7 +86,7 @@ func TestBWArr_Insert(t *testing.T) {
 	}{
 		{
 			name:         "add to empty",
-			bwaBefore:    New(int64Cmp, 0),
+			bwaBefore:    New(int64Cmp, 0, defaultMaxSegmentRank),
 			addedElement: 23,
 			bwaAfter:     makeInt64BWAFromWhite([][]int64{{23}, {0, 0}}, 1),
 		},
@@ -153,7 +153,7 @@ func TestBWArr_ReplaceOrInsert(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(testStructCmp, 0)
+			bwa := New(testStructCmp, 0, defaultMaxSegmentRank)
 			for _, elem := range tt.toInsertBefore {
 				bwa.Insert(elem)
 			}
@@ -218,7 +218,7 @@ func TestBWArr_HasAndGet(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(int64Cmp, 0)
+			bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 			for _, elem := range tt.elemsToAdd {
 				bwa.Insert(elem)
 			}
@@ -235,7 +235,7 @@ func TestBWArr_HasAndGet(t *testing.T) {
 func TestBWArr_GetStability(t *testing.T) {
 	t.Parallel()
 
-	bwa := New(stabValCmp, 10)
+	bwa := New(stabValCmp, 10, defaultMaxSegmentRank)
 
 	// Insert elements with duplicate values but different sequence numbers
 	elements := []stabVal{
@@ -312,7 +312,7 @@ func TestBWArr_Min(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(int64Cmp, 0)
+			bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 			for _, elem := range tt.elemsToAdd {
 				bwa.Insert(elem)
 			}
@@ -361,7 +361,7 @@ func TestBWArr_Max(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(int64Cmp, 0)
+			bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 			for _, elem := range tt.elemsToAdd {
 				bwa.Insert(elem)
 			}
@@ -392,7 +392,7 @@ func TestBWArr_MinStability(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(int64Cmp, 0)
+			bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 			for _, elem := range tt.elemsToAdd {
 				bwa.Insert(elem)
 			}
@@ -423,7 +423,7 @@ func TestBWArr_MaxStability(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(int64Cmp, 0)
+			bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 			for _, elem := range tt.elemsToAdd {
 				bwa.Insert(elem)
 			}
@@ -439,7 +439,7 @@ func TestBWArr_MaxStability(t *testing.T) {
 func TestBWArr_DeleteMin(t *testing.T) {
 	t.Parallel()
 	elems := []int64{87, 42, 23, 27, 23, 29, 61, 17, 51, 50, 11, 90}
-	bwa := New(int64Cmp, len(elems))
+	bwa := New(int64Cmp, len(elems), defaultMaxSegmentRank)
 	for _, elem := range elems {
 		bwa.Insert(elem)
 	}
@@ -457,7 +457,7 @@ func TestBWArr_DeleteMin(t *testing.T) {
 func TestBWArr_DeleteMax(t *testing.T) {
 	t.Parallel()
 	elems := []int64{87, 42, 23, 27, 23, 29, 61, 17, 51, 50, 11, 90}
-	bwa := New(int64Cmp, len(elems))
+	bwa := New(int64Cmp, len(elems), defaultMaxSegmentRank)
 	for _, elem := range elems {
 		bwa.Insert(elem)
 	}
@@ -547,7 +547,7 @@ func TestBWArr_Delete(t *testing.T) {
 
 func TestBWArr_DeleteFromEmpty(t *testing.T) {
 	t.Parallel()
-	bwa := New(int64Cmp, 0)
+	bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 
 	elem, found := bwa.DeleteMin()
 	assert.False(t, found)
@@ -562,7 +562,7 @@ func TestBWArr_RandomDelete(t *testing.T) {
 	t.Parallel()
 	rand.Seed(42) //nolint:staticcheck
 	const elements = 63
-	bwa := New(int64Cmp, 0)
+	bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 	toDel := make([]int64, elements)
 	for i := range elements {
 		toDel[i] = int64(i)
@@ -630,7 +630,7 @@ func TestBWArr_Len(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(int64Cmp, 0)
+			bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 			for _, elem := range tt.add {
 				bwa.Insert(elem)
 			}
@@ -644,7 +644,7 @@ func TestBWArr_Len(t *testing.T) {
 
 func TestBWArr_Clear(t *testing.T) {
 	t.Parallel()
-	bwa := New(int64Cmp, 0)
+	bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 	for i := range 15 {
 		bwa.Insert(int64(i))
 	}
@@ -664,7 +664,7 @@ func TestBWArr_Clear(t *testing.T) {
 
 func TestBWArr_Clone(t *testing.T) {
 	t.Parallel()
-	bwa := New(int64Cmp, 0)
+	bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 	for i := range 15 {
 		bwa.Insert(int64(i))
 	}
@@ -707,7 +707,7 @@ func TestBWArr_Ascend(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(int64Cmp, len(tt.initSeq))
+			bwa := New(int64Cmp, len(tt.initSeq), defaultMaxSegmentRank)
 			for _, e := range tt.initSeq {
 				bwa.Insert(e)
 			}
@@ -730,7 +730,7 @@ func TestBWArr_AscendRandom(t *testing.T) {
 	t.Parallel()
 	rand.Seed(2342) //nolint:staticcheck
 	const elements = 1023
-	bwa := New(int64Cmp, elements)
+	bwa := New(int64Cmp, elements, defaultMaxSegmentRank)
 	for range elements {
 		bwa.Insert(int64(rand.Intn(100)))
 	}
@@ -753,7 +753,7 @@ func TestBWArr_AscendWithDeleted(t *testing.T) {
 	}
 	rand.Shuffle(len(elems), func(i, j int) { elems[i], elems[j] = elems[j], elems[i] })
 
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for _, v := range elems {
 		bwa.Insert(v)
 	}
@@ -773,7 +773,7 @@ func TestBWArr_AscendStability(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 1023
 
-	bwa := New(stabValCmp, elemsNum)
+	bwa := New(stabValCmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(stabVal{val: rand.Intn(7), seq: i + 1})
 	}
@@ -790,7 +790,7 @@ func TestBWArr_AscendStability(t *testing.T) {
 func TestBWArr_AscendGreaterOrEqual(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 1023
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(int64(i))
 	}
@@ -816,7 +816,7 @@ func TestBWArr_AscendLessThan(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 1023
 	const pivot = 780
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(int64(i))
 	}
@@ -840,7 +840,7 @@ func TestBWArr_AscendLessThan(t *testing.T) {
 func TestBWArr_AscendRange(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 1023
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(int64(i))
 	}
@@ -864,7 +864,7 @@ func TestBWArr_AscendRange(t *testing.T) {
 func TestBWArr_AscendRangeOutOfBounds(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 15
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(int64(i))
 	}
@@ -899,7 +899,7 @@ func TestBWArr_Descend(t *testing.T) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(int64Cmp, len(tt.initSeq))
+			bwa := New(int64Cmp, len(tt.initSeq), defaultMaxSegmentRank)
 			for _, e := range tt.initSeq {
 				bwa.Insert(e)
 			}
@@ -922,7 +922,7 @@ func TestBWArr_DescendRandom(t *testing.T) {
 	t.Parallel()
 	rand.Seed(2342) //nolint:staticcheck
 	const elements = 1023
-	bwa := New(int64Cmp, elements)
+	bwa := New(int64Cmp, elements, defaultMaxSegmentRank)
 	for range elements {
 		bwa.Insert(int64(rand.Intn(100)))
 	}
@@ -945,7 +945,7 @@ func TestBWArr_DescendWithDeleted(t *testing.T) {
 	}
 	rand.Shuffle(len(elems), func(i, j int) { elems[i], elems[j] = elems[j], elems[i] })
 
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for _, v := range elems {
 		bwa.Insert(v)
 	}
@@ -965,7 +965,7 @@ func TestBWArr_DescendStability(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 1023
 
-	bwa := New(stabValCmp, elemsNum)
+	bwa := New(stabValCmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(stabVal{val: rand.Intn(7), seq: i + 1})
 	}
@@ -982,7 +982,7 @@ func TestBWArr_DescendStability(t *testing.T) {
 func TestBWArr_DescendGreaterOrEqual(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 1023
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := 8; i < elemsNum; i++ {
 		bwa.Insert(int64(i))
 	}
@@ -1001,7 +1001,7 @@ func TestBWArr_DescendGreaterOrEqual(t *testing.T) {
 func TestBWArr_DescendLessThan(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 1023
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum - 8 {
 		bwa.Insert(int64(i))
 	}
@@ -1020,7 +1020,7 @@ func TestBWArr_DescendLessThan(t *testing.T) {
 func TestBWArr_DescendRange(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 1023
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(int64(i))
 	}
@@ -1044,7 +1044,7 @@ func TestBWArr_DescendRange(t *testing.T) {
 func TestBWArr_DescendRangeOutOfBounds(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 15
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(int64(i))
 	}
@@ -1060,7 +1060,7 @@ func TestBWArr_DescendRangeOutOfBounds(t *testing.T) {
 func TestBWArr_AscIteratorsShouldStop(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 15
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(int64(i))
 	}
@@ -1077,7 +1077,7 @@ func TestBWArr_AscIteratorsShouldStop(t *testing.T) {
 func TestBWArr_DescIteratorsShouldStop(t *testing.T) {
 	t.Parallel()
 	const elemsNum = 15
-	bwa := New(int64Cmp, elemsNum)
+	bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 	for i := range elemsNum {
 		bwa.Insert(int64(i))
 	}
@@ -1094,7 +1094,7 @@ func TestBWArr_DescIteratorsShouldStop(t *testing.T) {
 func TestBWArr_Compact(t *testing.T) {
 	t.Parallel()
 
-	bwa := New(int64Cmp, 0)
+	bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 	bwa.Compact()
 	validateBWArr(t, bwa)
 
@@ -1115,7 +1115,7 @@ func TestBWArr_UnorderedWalk(t *testing.T) {
 
 	t.Run("empty array", func(t *testing.T) {
 		t.Parallel()
-		bwa := New(int64Cmp, 0)
+		bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
 		called := false
 		bwa.UnorderedWalk(func(_ int64) bool {
 			called = true
@@ -1126,7 +1126,7 @@ func TestBWArr_UnorderedWalk(t *testing.T) {
 
 	t.Run("single element", func(t *testing.T) {
 		t.Parallel()
-		bwa := New(int64Cmp, 1)
+		bwa := New(int64Cmp, 1, defaultMaxSegmentRank)
 		bwa.Insert(42)
 
 		elements := []int64{}
@@ -1140,7 +1140,7 @@ func TestBWArr_UnorderedWalk(t *testing.T) {
 	t.Run("multiple elements across segments", func(t *testing.T) {
 		t.Parallel()
 		// Insert enough elements to span multiple segments
-		bwa := New(int64Cmp, 15)
+		bwa := New(int64Cmp, 15, defaultMaxSegmentRank)
 		expected := []int64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 		for _, v := range expected {
 			bwa.Insert(v)
@@ -1159,7 +1159,7 @@ func TestBWArr_UnorderedWalk(t *testing.T) {
 
 	t.Run("early termination", func(t *testing.T) {
 		t.Parallel()
-		bwa := New(int64Cmp, 10)
+		bwa := New(int64Cmp, 10, defaultMaxSegmentRank)
 		for i := int64(1); i <= 10; i++ {
 			bwa.Insert(i)
 		}
@@ -1175,7 +1175,7 @@ func TestBWArr_UnorderedWalk(t *testing.T) {
 
 	t.Run("with deleted elements", func(t *testing.T) {
 		t.Parallel()
-		bwa := New(int64Cmp, 10)
+		bwa := New(int64Cmp, 10, defaultMaxSegmentRank)
 		for i := int64(1); i <= 10; i++ {
 			bwa.Insert(i)
 		}
@@ -1199,7 +1199,7 @@ func TestBWArr_UnorderedWalk(t *testing.T) {
 	t.Run("large dataset", func(t *testing.T) {
 		t.Parallel()
 		const elemsNum = 1023
-		bwa := New(int64Cmp, elemsNum)
+		bwa := New(int64Cmp, elemsNum, defaultMaxSegmentRank)
 
 		// Insert random elements
 		rand.Seed(42) //nolint:staticcheck
@@ -1227,7 +1227,7 @@ func TestBWArr_UnorderedWalk(t *testing.T) {
 
 	t.Run("iterator returning false immediately", func(t *testing.T) {
 		t.Parallel()
-		bwa := New(int64Cmp, 5)
+		bwa := New(int64Cmp, 5, defaultMaxSegmentRank)
 		for i := int64(1); i <= 5; i++ {
 			bwa.Insert(i)
 		}
@@ -1239,6 +1239,35 @@ func TestBWArr_UnorderedWalk(t *testing.T) {
 		})
 		assert.Equal(t, 1, count, "should call iterator exactly once")
 	})
+}
+
+func TestBWArr_DeleteAutoCompact(t *testing.T) {
+	t.Parallel()
+	testArray := makeInt64BWAFromWhite([][]int64{{17}, {23, 42}}, 3)
+	assert.Equal(t, 1, testArray.maxRank())
+	testArray.Delete(23)
+	assert.Equal(t, 1, testArray.maxRank())
+	testArray.Delete(42)
+	assert.Equal(t, 0, testArray.maxRank())
+	assert.Len(t, testArray.whiteSegments[0].elements, 1)
+	// Segment with rank 1 is deleted
+	assert.Empty(t, testArray.whiteSegments[1].elements)
+	assert.Empty(t, testArray.whiteSegments[1].deleted)
+}
+
+func TestBWArr_DeleteAutoCompactNoEffect(t *testing.T) {
+	t.Parallel()
+	testArray := makeInt64BWAFromWhite([][]int64{{17}, {23, 42}}, 3)
+	testArray.maxSegmentRank = 1
+	assert.Equal(t, 1, testArray.maxRank())
+	testArray.Delete(23)
+	assert.Equal(t, 1, testArray.maxRank())
+	testArray.Delete(42)
+	assert.Equal(t, 0, testArray.maxRank())
+	assert.Len(t, testArray.whiteSegments[0].elements, 1)
+	// Segment with rank 1 is preserved
+	assert.Len(t, testArray.whiteSegments[1].elements, 2)
+	assert.Len(t, testArray.whiteSegments[1].deleted, 2)
 }
 
 func int64Cmp(a, b int64) int {
@@ -1310,7 +1339,7 @@ func testNewBWArr[T any](t *testing.T, cmp CmpFunc[T]) {
 	for _, tt := range tests { //nolint:paralleltest
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bwa := New(cmp, tt.capacity)
+			bwa := New(cmp, tt.capacity, defaultMaxSegmentRank)
 			require.Len(t, bwa.whiteSegments, tt.wantWhiteSegments)
 			validateBWArr[T](t, bwa)
 		})
