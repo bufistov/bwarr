@@ -17,8 +17,6 @@ type BWArr[T any] struct {
 	// 3. If segment contains equal deleted and non-deleted elements, deleted are placed after non-deleted (greater index).
 
 	whiteSegments []segment[T]
-	highBlackSeg  segment[T]
-	lowBlackSeg   segment[T]
 	total         int // Total number of elements in the array, including deleted ones.
 	cmp           CmpFunc[T]
 }
@@ -46,13 +44,6 @@ func New[T any](cmp CmpFunc[T], capacity int) *BWArr[T] {
 	if wSegNum > 0 {
 		bwa.whiteSegments = createSegments[T](0, wSegNum)
 	}
-	if wSegNum > 1 {
-		bwa.highBlackSeg = makeSegment[T](wSegNum - 2) //nolint:mnd
-	}
-	if wSegNum > 2 { //nolint:mnd
-		bwa.lowBlackSeg = makeSegment[T](wSegNum - 3) //nolint:mnd
-	}
-
 	return bwa
 }
 
@@ -69,7 +60,6 @@ func NewFromSlice[T any](cmp CmpFunc[T], slice []T) *BWArr[T] {
 	copyFrom := 0
 	wSegNum := calculateWhiteSegmentsQuantity(l)
 	segs := make([]segment[T], wSegNum)
-	total := 0
 	rank := 0
 	for l > 0 {
 		mask := 1 << rank
@@ -84,15 +74,12 @@ func NewFromSlice[T any](cmp CmpFunc[T], slice []T) *BWArr[T] {
 		copyFrom += mask
 
 		segs[rank] = seg
-		total |= mask
 		l -= mask
 		rank++
 	}
 	return &BWArr[T]{
 		whiteSegments: segs,
-		highBlackSeg:  makeSegment[T](0),
-		lowBlackSeg:   makeSegment[T](0),
-		total:         total,
+		total:         len(slice),
 		cmp:           cmp,
 	}
 }
@@ -104,28 +91,22 @@ func NewFromSlice[T any](cmp CmpFunc[T], slice []T) *BWArr[T] {
 // Duplicate elements are allowed. If multiple equal elements exist, they
 // maintain stable ordering based on insertion order.
 func (bwa *BWArr[T]) Insert(element T) {
-	if bwa.total&1 == 0 { // whiteSegments[0] is free
-		bwa.ensureSeg(0)
-		bwa.whiteSegments[0].elements[0] = element
-		bwa.total++
-		return
-	}
+	// bwa.total + 1 - the new total number of elements after insertion, including the new element.
+	// & -(bwa.total + 1)  bit trick to get  the lowest set bit - segment that will become active after insertion.
+	destSegSize := (bwa.total + 1) & -(bwa.total + 1)
+	destSegRank := log2(destSegSize)
+	bwa.ensureSeg(destSegRank)
+	destSeg := &bwa.whiteSegments[destSegRank]
 
-	lowBlack := bwa.lowBlack(0)
-	lowBlack.elements[0] = element
-	for segNum := 1; segNum <= maxSegmentNumber; segNum++ {
-		if bwa.total&(1<<segNum) == 0 {
-			bwa.ensureSeg(segNum)
-			mergeSegments(*lowBlack, bwa.whiteSegments[segNum-1], bwa.cmp, &bwa.whiteSegments[segNum])
-			bwa.total++
-			return
-		}
-		highBlack := bwa.highBlack(segNum)
+	// Put the new element at the end of the destination segment
+	destSeg.elements[destSegSize-1] = element
 
-		bwa.ensureSeg(segNum)
-		mergeSegments(*lowBlack, bwa.whiteSegments[segNum-1], bwa.cmp, highBlack)
-		swapSegments(lowBlack, highBlack)
+	destReadPtr := destSegSize - 1
+	for segmentNumber := range destSegRank {
+		mergeSegments(&bwa.whiteSegments[segmentNumber], destSeg, bwa.cmp, destReadPtr)
+		destReadPtr -= 1 << segmentNumber
 	}
+	bwa.total++
 }
 
 // ReplaceOrInsert inserts an element into the BWArr, or replaces an existing
@@ -257,8 +238,6 @@ func (bwa *BWArr[T]) Clear(dropSegments bool) {
 	bwa.total = 0
 	if dropSegments {
 		bwa.whiteSegments = bwa.whiteSegments[:0]
-		bwa.highBlackSeg = segment[T]{} //nolint:exhaustruct
-		bwa.lowBlackSeg = segment[T]{}  //nolint:exhaustruct
 	}
 }
 
@@ -414,8 +393,6 @@ func (bwa *BWArr[T]) Compact() {
 			bwa.whiteSegments[i] = segment[T]{} //nolint:exhaustruct
 		}
 	}
-	bwa.highBlackSeg = segment[T]{} //nolint:exhaustruct
-	bwa.lowBlackSeg = segment[T]{}  //nolint:exhaustruct
 }
 
 func (bwa *BWArr[T]) del(segNum, index int) (deleted T) {
@@ -432,7 +409,8 @@ func (bwa *BWArr[T]) del(segNum, index int) (deleted T) {
 	}
 
 	segmentCapacity := 1 << segNum
-	if seg.deletedNum < segmentCapacity/2 {
+	halfSegmentCapacity := segmentCapacity >> 1
+	if seg.deletedNum < halfSegmentCapacity {
 		return deleted
 	}
 	if segNum == 0 {
@@ -441,17 +419,15 @@ func (bwa *BWArr[T]) del(segNum, index int) (deleted T) {
 		seg.deleted[0] = false
 		return deleted
 	}
-	if (1<<(segNum-1))&bwa.total == 0 {
+	if halfSegmentCapacity&bwa.total == 0 {
 		bwa.ensureSeg(segNum - 1)
 		demoteSegment(*seg, &bwa.whiteSegments[segNum-1])
-		bwa.total -= 1 << segNum
-		bwa.total += 1 << (segNum - 1)
 	} else {
-		blackSeg := bwa.highBlack(segNum - 1)
-		demoteSegment(*seg, blackSeg)
-		mergeSegments(bwa.whiteSegments[segNum-1], *blackSeg, bwa.cmp, seg)
-		bwa.total -= 1 << (segNum - 1)
+		moveNonDeletedValuesToSegmentEnd(*seg)
+		mergeSegmentsForDel(&bwa.whiteSegments[segNum-1], seg, bwa.cmp, halfSegmentCapacity)
+		seg.deletedNum = bwa.whiteSegments[segNum-1].deletedNum
 	}
+	bwa.total -= halfSegmentCapacity
 	return deleted
 }
 
@@ -513,8 +489,6 @@ func (bwa *BWArr[T]) search(element T) (segNum, index int) {
 	return -1, -1
 }
 
-const maxSegmentNumber = 62
-
 func (bwa *BWArr[T]) ensureSeg(rank int) {
 	l := len(bwa.whiteSegments)
 	if rank >= l {
@@ -524,14 +498,4 @@ func (bwa *BWArr[T]) ensureSeg(rank int) {
 	if len(bwa.whiteSegments[rank].elements) == 0 {
 		bwa.whiteSegments[rank] = makeSegment[T](rank)
 	}
-}
-
-func (bwa *BWArr[T]) highBlack(rank int) *segment[T] {
-	bwa.highBlackSeg = *reallocateSegment(&bwa.highBlackSeg, rank)
-	return &bwa.highBlackSeg
-}
-
-func (bwa *BWArr[T]) lowBlack(rank int) *segment[T] {
-	bwa.lowBlackSeg = *reallocateSegment(&bwa.lowBlackSeg, rank)
-	return &bwa.lowBlackSeg
 }
