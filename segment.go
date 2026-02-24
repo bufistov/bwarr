@@ -34,76 +34,131 @@ func makeSegment[T any](rank int) segment[T] {
 
 // Merge lowSeg and highSeg into highSeg using highSeg free space at the beginning.
 func mergeSegments[T any](lowSeg, highSeg *segment[T], cmp CmpFunc[T], highSegReadIdx int) {
-	lowSegReadIdx := 0
+	if lowSeg.deletedNum == 0 && highSeg.deletedNum == 0 {
+		mergeSegmentsClean(lowSeg, highSeg, cmp, highSegReadIdx)
+	} else {
+		mergeSegmentsDirty(lowSeg, highSeg, cmp, highSegReadIdx)
+	}
+
+	highSeg.minNonDeletedIdx = 0
+	highSeg.maxNonDeletedIdx = len(highSeg.elements) - 1
+}
+
+// mergeSegmentsClean is the fast path for merging segments with no deleted elements.
+func mergeSegmentsClean[T any](lowSeg, highSeg *segment[T], cmp CmpFunc[T], highSegReadIdx int) {
 	lowSegEnd := len(lowSeg.elements)
 	highSegWriteIdx := highSegReadIdx - lowSegEnd
 	highSegEnd := highSegReadIdx + lowSegEnd
 
-	for highSegReadIdx < highSegEnd && lowSegReadIdx < lowSegEnd {
-		cmpResult := cmp(highSeg.elements[highSegReadIdx], lowSeg.elements[lowSegReadIdx])
-		if (cmpResult < 0) || (cmpResult == 0 && !highSeg.deleted[highSegReadIdx]) {
-			highSeg.elements[highSegWriteIdx] = highSeg.elements[highSegReadIdx]
-			highSeg.deleted[highSegWriteIdx] = highSeg.deleted[highSegReadIdx]
+	// Sub-slice so the compiler can prove loop indices are in bounds (BCE).
+	highElems := highSeg.elements[:highSegEnd]
+	lowElems := lowSeg.elements[:lowSegEnd]
+
+	lowSegReadIdx := 0
+
+	for highSegReadIdx < len(highElems) && lowSegReadIdx < len(lowElems) {
+		if cmp(highElems[highSegReadIdx], lowElems[lowSegReadIdx]) <= 0 {
+			highElems[highSegWriteIdx] = highElems[highSegReadIdx]
 			highSegReadIdx++
 		} else {
-			highSeg.elements[highSegWriteIdx] = lowSeg.elements[lowSegReadIdx]
-			highSeg.deleted[highSegWriteIdx] = lowSeg.deleted[lowSegReadIdx]
+			highElems[highSegWriteIdx] = lowElems[lowSegReadIdx]
 			lowSegReadIdx++
 		}
 		highSegWriteIdx++
 	}
 
-	// Copy remaining elements (only one of the segments contains it):
-	copy(highSeg.elements[highSegWriteIdx:], highSeg.elements[highSegReadIdx:])
-	copy(highSeg.deleted[highSegWriteIdx:], highSeg.deleted[highSegReadIdx:])
-	copy(highSeg.elements[highSegWriteIdx:], lowSeg.elements[lowSegReadIdx:])
-	copy(highSeg.deleted[highSegWriteIdx:], lowSeg.deleted[lowSegReadIdx:])
+	copy(highSeg.elements[highSegWriteIdx:], highSeg.elements[highSegReadIdx:highSegEnd])
+	copy(highSeg.elements[highSegWriteIdx:], lowSeg.elements[lowSegReadIdx:lowSegEnd])
+}
 
-	highSeg.minNonDeletedIdx = 0
-	highSeg.maxNonDeletedIdx = len(highSeg.elements) - 1
+// mergeSegmentsDirty is the slow path for merging segments that have deleted elements.
+func mergeSegmentsDirty[T any](lowSeg, highSeg *segment[T], cmp CmpFunc[T], highSegReadIdx int) {
+	lowSegEnd := len(lowSeg.elements)
+	highSegWriteIdx := highSegReadIdx - lowSegEnd
+	highSegEnd := highSegReadIdx + lowSegEnd
+
+	// Sub-slice so the compiler can prove loop indices are in bounds (BCE).
+	highElems := highSeg.elements[:highSegEnd]
+	highDel := highSeg.deleted[:highSegEnd]
+	lowElems := lowSeg.elements[:lowSegEnd]
+	lowDel := lowSeg.deleted[:lowSegEnd]
+
+	lowSegReadIdx := 0
+
+	for highSegReadIdx < len(highElems) && lowSegReadIdx < len(lowElems) {
+		cmpResult := cmp(highElems[highSegReadIdx], lowElems[lowSegReadIdx])
+		if (cmpResult < 0) || (cmpResult == 0 && !highDel[highSegReadIdx]) {
+			highElems[highSegWriteIdx] = highElems[highSegReadIdx]
+			highDel[highSegWriteIdx] = highDel[highSegReadIdx]
+			highSegReadIdx++
+		} else {
+			highElems[highSegWriteIdx] = lowElems[lowSegReadIdx]
+			highDel[highSegWriteIdx] = lowDel[lowSegReadIdx]
+			lowSegReadIdx++
+		}
+		highSegWriteIdx++
+	}
+
+	copy(highSeg.elements[highSegWriteIdx:], highSeg.elements[highSegReadIdx:highSegEnd])
+	copy(highSeg.deleted[highSegWriteIdx:], highSeg.deleted[highSegReadIdx:highSegEnd])
+	copy(highSeg.elements[highSegWriteIdx:], lowSeg.elements[lowSegReadIdx:lowSegEnd])
+	copy(highSeg.deleted[highSegWriteIdx:], lowSeg.deleted[lowSegReadIdx:lowSegEnd])
+
 	highSeg.deletedNum += lowSeg.deletedNum
 }
 
 // Merge lowSeg and highSeg into highSeg using highSeg free space at the beginning.
 // Preserve FIFO order for deleting. Maintain min/max non-deleted indexes.
 func mergeSegmentsForDel[T any](lowSeg, highSeg *segment[T], cmp CmpFunc[T], highSegReadIdx int) {
-	lowSegReadIdx := 0
 	lowSegEnd := len(lowSeg.elements)
 	highSegWriteIdx := highSegReadIdx - lowSegEnd
 	highSegEnd := highSegReadIdx + lowSegEnd
 
-	for highSegReadIdx < highSegEnd && lowSegReadIdx < lowSegEnd {
-		cmpResult := cmp(highSeg.elements[highSegReadIdx], lowSeg.elements[lowSegReadIdx])
-		if (cmpResult > 0) || (cmpResult == 0 && !lowSeg.deleted[lowSegReadIdx]) {
-			highSeg.elements[highSegWriteIdx] = lowSeg.elements[lowSegReadIdx]
-			highSeg.deleted[highSegWriteIdx] = lowSeg.deleted[lowSegReadIdx]
+	// Sub-slice so the compiler can prove loop indices are in bounds (BCE).
+	highElems := highSeg.elements[:highSegEnd]
+	highDel := highSeg.deleted[:highSegEnd]
+	lowElems := lowSeg.elements[:lowSegEnd]
+	lowDel := lowSeg.deleted[:lowSegEnd]
+
+	lowSegReadIdx := 0
+
+	for highSegReadIdx < len(highElems) && lowSegReadIdx < len(lowElems) {
+		var del bool
+		cmpResult := cmp(highElems[highSegReadIdx], lowElems[lowSegReadIdx])
+		if (cmpResult > 0) || (cmpResult == 0 && !lowDel[lowSegReadIdx]) {
+			highElems[highSegWriteIdx] = lowElems[lowSegReadIdx]
+			del = lowDel[lowSegReadIdx]
+			highDel[highSegWriteIdx] = del
 			lowSegReadIdx++
 		} else {
-			highSeg.elements[highSegWriteIdx] = highSeg.elements[highSegReadIdx]
-			highSeg.deleted[highSegWriteIdx] = highSeg.deleted[highSegReadIdx]
+			highElems[highSegWriteIdx] = highElems[highSegReadIdx]
+			del = highDel[highSegReadIdx]
+			highDel[highSegWriteIdx] = del
 			highSegReadIdx++
 		}
-		if !highSeg.deleted[highSegWriteIdx] {
+		if !del {
 			highSeg.maxNonDeletedIdx = max(highSeg.maxNonDeletedIdx, highSegWriteIdx)
 			highSeg.minNonDeletedIdx = min(highSeg.minNonDeletedIdx, highSegWriteIdx)
 		}
 		highSegWriteIdx++
 	}
 
-	for highSegReadIdx < highSegEnd {
-		highSeg.elements[highSegWriteIdx] = highSeg.elements[highSegReadIdx]
-		highSeg.deleted[highSegWriteIdx] = highSeg.deleted[highSegReadIdx]
-		if !highSeg.deleted[highSegWriteIdx] {
+	for highSegReadIdx < len(highElems) {
+		highElems[highSegWriteIdx] = highElems[highSegReadIdx]
+		del := highDel[highSegReadIdx]
+		highDel[highSegWriteIdx] = del
+		if !del {
 			highSeg.maxNonDeletedIdx = max(highSeg.maxNonDeletedIdx, highSegWriteIdx)
 			highSeg.minNonDeletedIdx = min(highSeg.minNonDeletedIdx, highSegWriteIdx)
 		}
 		highSegWriteIdx++
 		highSegReadIdx++
 	}
-	for lowSegReadIdx < lowSegEnd {
-		highSeg.elements[highSegWriteIdx] = lowSeg.elements[lowSegReadIdx]
-		highSeg.deleted[highSegWriteIdx] = lowSeg.deleted[lowSegReadIdx]
-		if !highSeg.deleted[highSegWriteIdx] {
+	for lowSegReadIdx < len(lowElems) {
+		highElems[highSegWriteIdx] = lowElems[lowSegReadIdx]
+		del := lowDel[lowSegReadIdx]
+		highDel[highSegWriteIdx] = del
+		if !del {
 			highSeg.maxNonDeletedIdx = max(highSeg.maxNonDeletedIdx, highSegWriteIdx)
 			highSeg.minNonDeletedIdx = min(highSeg.minNonDeletedIdx, highSegWriteIdx)
 		}
@@ -147,9 +202,11 @@ func moveNonDeletedValuesToSegmentEnd[T any](seg segment[T]) {
 
 // returns index of the rightmost element equal to val that is not deleted.
 func (s *segment[T]) findRightmostNotDeleted(cmp CmpFunc[T], val T) int {
-	b, e := s.minNonDeletedIdx, s.maxNonDeletedIdx+1
-	elems := s.elements
-	del := s.deleted
+	// Sub-slice for BCE: the compiler tracks len(elems) through e's mutations.
+	elems := s.elements[:s.maxNonDeletedIdx+1]
+	del := s.deleted[:s.maxNonDeletedIdx+1]
+	b := s.minNonDeletedIdx
+	e := len(elems)
 	for b < e {
 		m := (b + e) >> 1
 		cmpRes := cmp(val, elems[m])
@@ -172,10 +229,10 @@ func (s *segment[T]) findRightmostNotDeleted(cmp CmpFunc[T], val T) int {
 		return -1
 	}
 	idx--
-	if s.deleted[idx] {
+	if del[idx] {
 		return -1
 	}
-	if cmp(s.elements[idx], val) != 0 {
+	if cmp(elems[idx], val) != 0 {
 		return -1
 	}
 	return idx
@@ -200,8 +257,9 @@ func (s *segment[T]) min(cmp CmpFunc[T]) int {
 // returns index of the first element that is greater or equal to val and is not deleted.
 // If all elements are less than val, returns -1.
 func (s *segment[T]) findGTOE(cmp CmpFunc[T], val T) int {
-	elems := s.elements
-	b, e := s.minNonDeletedIdx, s.maxNonDeletedIdx+1
+	elems := s.elements[:s.maxNonDeletedIdx+1]
+	b := s.minNonDeletedIdx
+	e := len(elems)
 	for b < e {
 		m := (b + e) >> 1
 		cmpRes := cmp(val, elems[m])
@@ -220,7 +278,7 @@ func (s *segment[T]) findGTOE(cmp CmpFunc[T], val T) int {
 // returns index of the first element that is less than val and is not deleted.
 // If all elements are greater or equal to val, returns -1.
 func (s *segment[T]) findLess(cmp CmpFunc[T], val T) int {
-	elems := s.elements
+	elems := s.elements[:s.maxNonDeletedIdx+1]
 	b, e := s.minNonDeletedIdx-1, s.maxNonDeletedIdx
 	for b < e {
 		m := (b+e)>>1 + 1
