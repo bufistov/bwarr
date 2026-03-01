@@ -10,7 +10,7 @@ func TestCreateDescIteratorEnd(t *testing.T) {
 	t.Parallel()
 
 	// Initialize a BWArr with some segments
-	bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, 0)
 	for i := range 7 {
 		bwa.Insert(int64(i))
 	}
@@ -37,7 +37,7 @@ func TestCreateAscIteratorBegin(t *testing.T) {
 	t.Parallel()
 
 	// Initialize a BWArr with some segments
-	bwa := New(int64Cmp, 0, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, 0)
 	for i := range 7 {
 		bwa.Insert(int64(i))
 	}

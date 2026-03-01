@@ -20,7 +20,7 @@ func BenchmarkQA_ReplaceOrInsertNotFound(b *testing.B) {
 }
 
 func BenchmarkQA_ReplaceOrInsertFound(b *testing.B) {
-	bwa := New(int64Cmp, elemsOnStart, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elemsOnStart)
 	preparedData := make([]int64, elemsOnStart)
 
 	for i := range elemsOnStart {
@@ -36,7 +36,7 @@ func BenchmarkQA_ReplaceOrInsertFound(b *testing.B) {
 }
 
 func BenchmarkQA_HasFound(b *testing.B) {
-	bwa := New(int64Cmp, elemsOnStart, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elemsOnStart)
 	preparedData := make([]int64, elemsOnStart)
 
 	for i := range elemsOnStart {
@@ -52,7 +52,7 @@ func BenchmarkQA_HasFound(b *testing.B) {
 }
 
 func BenchmarkQA_HasNotFoundWorst(b *testing.B) {
-	bwa := New(int64Cmp, elemsOnStart, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elemsOnStart)
 
 	for range elemsOnStart {
 		bwa.Insert(rand.Int63())
@@ -70,7 +70,7 @@ func BenchmarkQA_HasNotFoundWorst(b *testing.B) {
 }
 
 func BenchmarkQA_Min(b *testing.B) {
-	bwa := New(int64Cmp, elemsOnStart, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elemsOnStart)
 
 	for range elemsOnStart {
 		bwa.Insert(rand.Int63())
@@ -84,7 +84,7 @@ func BenchmarkQA_Min(b *testing.B) {
 }
 
 func BenchmarkQA_Max(b *testing.B) {
-	bwa := New(int64Cmp, elemsOnStart, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elemsOnStart)
 
 	for range elemsOnStart {
 		bwa.Insert(rand.Int63())
@@ -98,7 +98,7 @@ func BenchmarkQA_Max(b *testing.B) {
 }
 
 func BenchmarkQA_Delete(b *testing.B) {
-	bwa := New(int64Cmp, elemsOnStart+b.N, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elemsOnStart+b.N)
 	for range elemsOnStart {
 		bwa.Insert(rand.Int63())
 	}
@@ -122,7 +122,7 @@ func BenchmarkQA_Delete(b *testing.B) {
 func BenchmarkQA_DeleteMin(b *testing.B) {
 	const elemsOnStart = 4 * 1024 * 1024
 	elems := elemsOnStart + b.N
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 
 	for range elems {
 		bwa.Insert(rand.Int63())
@@ -138,7 +138,7 @@ func BenchmarkQA_DeleteMin(b *testing.B) {
 func BenchmarkQA_DeleteMax(b *testing.B) {
 	const elemsOnStart = 4 * 1024 * 1024
 	elems := elemsOnStart + b.N
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 
 	for range elems {
 		bwa.Insert(rand.Int63())
@@ -172,7 +172,7 @@ func BenchmarkLongQA_InsertRandom(b *testing.B) {
 		preparedData[i] = rand.Int63()
 	}
 
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -186,7 +186,7 @@ func BenchmarkLongQA_InsertRandom(b *testing.B) {
 
 func BenchmarkLongQA_AscendRandom(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	for range elems {
 		bwa.Insert(rand.Int63())
 	}
@@ -206,7 +206,7 @@ func BenchmarkLongQA_AscendRandom(b *testing.B) {
 
 func BenchmarkLongQA_AscendInc(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	for i := range elems {
 		bwa.Insert(int64(i))
 	}
@@ -226,7 +226,7 @@ func BenchmarkLongQA_AscendInc(b *testing.B) {
 
 func BenchmarkLongQA_AscendDec(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	for i := range elems {
 		bwa.Insert(int64(elems - i))
 	}
@@ -246,7 +246,7 @@ func BenchmarkLongQA_AscendDec(b *testing.B) {
 
 func BenchmarkLongQA_AscendRange(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	const from, to = 1000, elems - 1000
 	for i := range elems {
 		bwa.Insert(int64(i + from))
@@ -267,7 +267,7 @@ func BenchmarkLongQA_AscendRange(b *testing.B) {
 
 func BenchmarkLongQA_AscendWithDelSeries(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	const seriesLen = 301
 	toDel := make([]int64, 0, elems/seriesLen)
 	seriesEnd := 0
@@ -299,7 +299,7 @@ func BenchmarkLongQA_AscendWithDelSeries(b *testing.B) {
 
 func BenchmarkLongQA_DescendRandom(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	for range elems {
 		bwa.Insert(rand.Int63())
 	}
@@ -319,7 +319,7 @@ func BenchmarkLongQA_DescendRandom(b *testing.B) {
 
 func BenchmarkLongQA_DescendRangeWithDelSeries(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	const seriesLen = 301
 	toDel := make([]int64, 0, elems/seriesLen)
 	seriesEnd := 0
@@ -352,7 +352,7 @@ func BenchmarkLongQA_DescendRangeWithDelSeries(b *testing.B) {
 
 func BenchmarkLongQA_UnorderedWalkRandom(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	for range elems {
 		bwa.Insert(rand.Int63())
 	}
@@ -372,7 +372,7 @@ func BenchmarkLongQA_UnorderedWalkRandom(b *testing.B) {
 
 func BenchmarkLongQA_UnorderedWalkWithDelSeries(b *testing.B) {
 	const elems = 128*1024 - 1
-	bwa := New(int64Cmp, elems, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, elems)
 	const seriesLen = 301
 	toDel := make([]int64, 0, elems/seriesLen)
 	seriesEnd := 0
@@ -418,7 +418,7 @@ func BenchmarkAppendWorstCase16M(b *testing.B) {
 
 func benchmarkAppendWorstCase(b *testing.B, size int) {
 	// Prepare BWArr with size-1 elements to provoke segment allocation on insert.
-	bwaDraft := New(int64Cmp, 0, defaultMaxSegmentRank)
+	bwaDraft := New(int64Cmp, 0)
 	for range size - 1 {
 		bwaDraft.Insert(rand.Int63())
 	}
@@ -433,7 +433,7 @@ func benchmarkAppendWorstCase(b *testing.B, size int) {
 }
 
 func benchmarkAppend(b *testing.B, elemsOnStart, capacity int) {
-	bwa := New(int64Cmp, capacity, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, capacity)
 
 	for range elemsOnStart {
 		bwa.Insert(rand.Int63())
@@ -451,7 +451,7 @@ func benchmarkAppend(b *testing.B, elemsOnStart, capacity int) {
 }
 
 func benchmarkReplace(b *testing.B, elemsOnStart, capacity int) {
-	bwa := New(int64Cmp, capacity, defaultMaxSegmentRank)
+	bwa := New(int64Cmp, capacity)
 
 	for range elemsOnStart {
 		bwa.Insert(rand.Int63())
