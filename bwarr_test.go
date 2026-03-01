@@ -1426,30 +1426,32 @@ func markDel[T any](bwa *BWArr[T], toDel ...bwaIdx) *BWArr[T] {
 }
 
 func TestNewWithOptions_KeepSegments(t *testing.T) {
+	t.Parallel()
 	type testCase struct {
 		name                  string
-		ElementsKeepAllocated int
+		ElementsKeepAllocated uint64
 		wantKeepSegmentRank   int
 	}
 	tests := []testCase{
 		{
-			name:                  "keep 0 segments",
+			name:                  "keep 0 elements",
 			ElementsKeepAllocated: 0,
 			wantKeepSegmentRank:   -1,
 		},
 		{
-			name:                  "keep 7 segments",
+			name:                  "keep 7 elements",
 			ElementsKeepAllocated: 7,
 			wantKeepSegmentRank:   2,
 		},
 		{
-			name:                  "keep 8 segments",
+			name:                  "keep 8 elements",
 			ElementsKeepAllocated: 8,
 			wantKeepSegmentRank:   3,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			bwa := NewWithOptions(int64Cmp, 0, Options{ElementsKeepAllocated: tt.ElementsKeepAllocated})
 			require.Equal(t, tt.wantKeepSegmentRank, bwa.maxSegmentRankToKeep)
 		})

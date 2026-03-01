@@ -25,7 +25,7 @@ type BWArr[T any] struct {
 	total                int // Total number of elements in the array, including deleted ones.
 	cmp                  CmpFunc[T]
 	maxSegmentRankToKeep int // Always keep segments with rank <= maxSegmentRankToKeep
-	// If maxSegmentRankToKeep is 10 the structure will never shrink below 2047 bytes.
+	// If maxSegmentRankToKeep is 10 the structure will never shrink below 2047 elements.
 }
 
 // CmpFunc is a comparison function that defines the ordering of elements.
@@ -45,7 +45,7 @@ type IteratorFunc[T any] func(item T) bool
 // number of elements to optimize initial memory allocation. Use 0 if the
 // capacity is unknown.
 func New[T any](cmp CmpFunc[T], capacity int) *BWArr[T] {
-	return NewWithOptions[T](cmp, capacity, Options{defaultMaxSegmentRank})
+	return NewWithOptions[T](cmp, capacity, Options{1 << defaultMaxSegmentRank})
 }
 
 // NewFromSlice creates a new BWArr from an existing slice of elements and a comparison
@@ -88,14 +88,14 @@ func NewFromSlice[T any](cmp CmpFunc[T], slice []T) *BWArr[T] {
 
 type Options struct {
 	// Number of elements to keep allocated in segments after deletion to prevent allocations on smaller sizes.
-	// Will be rounded up to the nearest power of 2. For example, if set to 10, segments with capacity <= 16 will be kept allocated.
-	ElementsKeepAllocated int
+	// Will be rounded up to the nearest power of 2. For example, if set to 10, 16 elements will be kept allocated.
+	ElementsKeepAllocated uint64
 }
 
 // NewWithOptions creates a new empty BWArr with the given comparison function CmpFunc, capacity hint, and Options.
 // See Options struct for details on available options.
 func NewWithOptions[T any](cmp CmpFunc[T], capacity int, options Options) *BWArr[T] {
-	maxSegmentRankToKeep := bits.Len64(uint64(options.ElementsKeepAllocated)) - 1 //nolint: gosec
+	maxSegmentRankToKeep := bits.Len64(options.ElementsKeepAllocated) - 1 //nolint: gosec
 	bwa := &BWArr[T]{cmp: cmp, total: 0, maxSegmentRankToKeep: maxSegmentRankToKeep}
 
 	wSegNum := calculateWhiteSegmentsQuantity(capacity)
@@ -115,7 +115,7 @@ func (bwa *BWArr[T]) Insert(element T) {
 	// bwa.total + 1 - the new total number of elements after insertion, including the new element.
 	// & -(bwa.total + 1)  bit trick to get  the lowest set bit - segment that will become active after insertion.
 	destSegSize := (bwa.total + 1) & -(bwa.total + 1)
-	destSegRank := rightmostTrueBit(destSegSize)
+	destSegRank := rightmostTrueBitPosition(destSegSize)
 	bwa.ensureSeg(destSegRank)
 	destSeg := &bwa.whiteSegments[destSegRank]
 

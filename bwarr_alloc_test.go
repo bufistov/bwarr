@@ -16,7 +16,7 @@ func TestBWArr_SizeOfEmpty(t *testing.T) {
 		bwarr        *BWArr[int64]
 		expectedSize int
 	}{
-		// Count words (8 bytes): maxSegmentRank (1 byte)
+		// Count words (8 bytes):
 		// whiteSegments 3, // total 1, cmp 1 --> // 3 + 1 + 1 + 1 = 6;
 		// 6 * 8 = 48 bytes;
 		{
